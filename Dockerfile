@@ -27,6 +27,12 @@ RUN pip install --break-system-packages --no-cache-dir \
     flash-linear-attention \
     causal-conv1d
 
+# Install Studio backend dependencies into system Python
+RUN pip install --break-system-packages --no-cache-dir \
+    structlog uvicorn nest_asyncio matplotlib fastapi pydantic \
+    PyJWT passlib python-jose cryptography \
+    httpx websockets python-multipart aiofiles watchfiles diceware
+
 # Install Unsloth Studio (creates venv, builds llama.cpp for SM 12.1)
 # --no-torch skips PyTorch install since it's already in the base image
 RUN curl -fsSL https://unsloth.ai/install.sh | sh -s -- --no-torch
