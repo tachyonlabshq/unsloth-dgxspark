@@ -3,7 +3,7 @@
 # Adds: Unsloth Studio web UI, latest transformers, FLA, causal-conv1d
 #
 # Built automatically via GitHub Actions on a weekly schedule.
-# Pushed to ghcr.io/<owner>/unsloth-dgxspark
+# Pushed to ghcr.io/tachyonlabshq/unsloth-dgxspark
 
 FROM unsloth/unsloth:dgxspark-latest
 
@@ -27,18 +27,22 @@ RUN pip install --break-system-packages --no-cache-dir \
     flash-linear-attention \
     causal-conv1d
 
-# Run Unsloth Studio first-time setup (installs backend deps + llama.cpp)
-# This runs as root during build; the entrypoint switches to unsloth user
-RUN /home/unsloth/.local/bin/unsloth studio update || true
+# Install Unsloth Studio (creates venv, builds llama.cpp for SM 12.1)
+# --no-torch skips PyTorch install since it's already in the base image
+RUN curl -fsSL https://unsloth.ai/install.sh | sh -s -- --no-torch
 
-# Add Studio to supervisord so it auto-starts alongside Jupyter and SSH
+# Create Studio log directory
+RUN mkdir -p /var/log/studio && chown unsloth:runtimeusers /var/log/studio
+
+# Add Studio to supervisord (auto-starts on port 8000)
 COPY supervisord-studio.conf /etc/supervisor/conf.d/studio.conf
 
-# Expose ports: Jupyter (8888), Studio (8000), SSH (22)
-EXPOSE 8888 8000 22
+# Expose ports: Studio (8000), Jupyter (8888), SSH (22)
+EXPOSE 8000 8888 22
 
 # Verify installs
 RUN python3 -c "import transformers; print(f'transformers: {transformers.__version__}')" && \
     python3 -c "import fla; print('flash-linear-attention: OK')" && \
     python3 -c "import causal_conv1d; print('causal-conv1d: OK')" && \
-    python3 -c "import unsloth_cli; print('unsloth-cli: OK')"
+    python3 -c "import unsloth_cli; print('unsloth-cli: OK')" && \
+    test -d /home/unsloth/.unsloth/studio && echo "Studio: OK"
