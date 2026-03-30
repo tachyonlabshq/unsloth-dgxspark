@@ -41,7 +41,13 @@ RUN curl -fsSL https://unsloth.ai/install.sh | sh -s -- --no-torch
 RUN mkdir -p /var/log/studio && chown unsloth:runtimeusers /var/log/studio
 
 # Add Studio to supervisord (auto-starts on port 8000)
+# Note: the base image entrypoint invokes supervisord with
+#   -c /etc/supervisor/conf.d/supervisord.conf
+# directly — bypassing the [include] glob in /etc/supervisor/supervisord.conf.
+# Copying to studio.conf alone is insufficient; we must also append into
+# the file supervisord actually loads.
 COPY supervisord-studio.conf /etc/supervisor/conf.d/studio.conf
+RUN cat /etc/supervisor/conf.d/studio.conf >> /etc/supervisor/conf.d/supervisord.conf
 
 # Expose ports: Studio (8000), Jupyter (8888), SSH (22)
 EXPOSE 8000 8888 22
